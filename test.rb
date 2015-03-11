@@ -52,7 +52,7 @@ files.each do |file|
 	tittle = (doc.css('h2')[0].text).strip
 	speaker_name = (doc.css('h2')[1].text).strip unless doc.css('h2')[1].nil?
 	speaker_twitter = doc.css('h2')[1].css('a')[1]['href'] unless doc.css('h2')[1].nil?
-	speaker = {:name => speaker_name, :twitter => speaker_twitter}
+	speaker = [{:name => speaker_name, :twitter => speaker_twitter}]
 
 	video_url = doc.css('h3').css('a')[1]['href'] if !doc.css('h3').css('a')[1].nil?
 
@@ -62,8 +62,10 @@ files.each do |file|
 		participants << {:name => speaker.text, :twitter => speaker['href']}
 	end
 
-	hash = {:month => month, :year => year, :date => date, :topics => {:tittle => tittle, :speakers => speaker},
-					:location => location.text, :video_url => video_url}
+	description = doc.xpath('//p[not(position()=last())]').text().strip
+
+	hash = {month: month, year: year, date: date, topics: {tittle: tittle, speakers: speaker},
+          location: location.text.strip, video_url: video_url, participants: participants, description: description}
 
 	filename_json = "#{file.gsub('.html', '')}.json"
 	File.open(filename_json, "w") do |file|
