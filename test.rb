@@ -5,26 +5,27 @@ require 'nokogiri'
 require 'open-uri'
 require 'json'
 
-page = Nokogiri::HTML(open("https://github.com/madridrb/madridrb.github.io/wiki"))
-links = page.css(".wiki-pages//a")
+page = Nokogiri::HTML(open("#{URL_BASE}/madridrb/madridrb.github.io/wiki"))
+links = page.xpath("//a[@class='wiki-page-link']")
 
 # Save files
+puts "Saving files in HTML ..."
 links.each do |link|
 	unless link.text == 'Home'
 		filename_html = "#{link.text.gsub(' ', '_')}.html"
-		edit_link = "https://github.com#{link['href']}"
+		edit_link = "#{URL_BASE}#{link['href']}"
 
-		File.open(filename_html, "w") do |file|
-			file.write(Nokogiri::HTML(open(edit_link)).css('.markdown-body'))
+		unless File.exists?("./#{filename_html}")
+			File.write(filename_html, Nokogiri::HTML(open(edit_link)).css('.markdown-body'))
+			puts "  #{filename_html}"
 		end
-
-		puts "#{filename_html} written to disk."
 	end
 end
 
 files = Dir["*.html"]
 
 # Parse files
+puts "Convert and saving files in JSON ..."
 files.each do |file|
 	file_content = File.open(file, "r").read
 	doc = Nokogiri::XML(file_content)
@@ -51,18 +52,17 @@ files.each do |file|
 	end
 
 
-#	sponsors = Array.new
-#	companies = doc.xpath
-#	companies.each do |company|
-#		sponsors << {name: '', url: '', img: ''}
-#	end
-
+	sponsors = Array.new
+	companies = doc.xpath("//img[@data-canonical-src]")
+	companies.each do |company|
+	sponsors << { 	name: company.xpath("@alt").text, url: company.xpath("../@href").text, img: company.xpath("@data-canonical-src").text }
+	end
 
 	description = doc.xpath('//p[not(position()=last())]').text().strip
 
 
 	hash = { month: month, year: year, date: date, topics: {tittle: tittle, speakers: speaker},
-          	 location: location.text.strip, video_url: video_url, participants: participants, description: description}
+          	 location: location.text.strip, video_url: video_url, participants: participants, sponsors: sponsors, description: description}
 
     # Write Json
 	filename_json = "#{file.gsub('.html', '')}.json"
@@ -70,5 +70,5 @@ files.each do |file|
 		file.write(hash.to_json)
 	end
 
-	puts "#{filename_json} written to disk."
+	puts "  #{filename_json}"
 end
