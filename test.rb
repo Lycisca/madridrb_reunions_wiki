@@ -7,6 +7,7 @@ require 'json'
 
 page = Nokogiri::HTML(open("#{URL_BASE}/madridrb/madridrb.github.io/wiki"))
 links = page.xpath("//a[@class='wiki-page-link']")
+raise links.to_a.inspect
 
 # Save files
 puts "Saving files in HTML ..."
@@ -27,7 +28,7 @@ files = Dir["*.html"]
 # Parse files
 puts "Convert and saving files in JSON ..."
 files.each do |file|
-	file_content = File.open(file, "r").read
+	file_content = File.read(file)
 	doc = Nokogiri::XML(file_content)
 
 	date, time, location = doc.css("table td")
@@ -55,7 +56,8 @@ files.each do |file|
 	sponsors = Array.new
 	companies = doc.xpath("//img[@data-canonical-src]")
 	companies.each do |company|
-	sponsors << { 	name: company.xpath("@alt").text, url: company.xpath("../@href").text, img: company.xpath("@data-canonical-src").text }
+	sponsors << { name: company.xpath("@alt").text, 
+		url: company.xpath("../@href").text, img: company.xpath("@data-canonical-src").text }
 	end
 
 	description = doc.xpath('//p[not(position()=last())]').text().strip
@@ -65,10 +67,8 @@ files.each do |file|
           	 location: location.text.strip, video_url: video_url, participants: participants, sponsors: sponsors, description: description}
 
     # Write Json
-	filename_json = "#{file.gsub('.html', '')}.json"
-	File.open(filename_json, "w") do |file|
-		file.write(hash.to_json)
-	end
+	filename_json = "#{file.gsub('.html', '.json')}"
+	File.write(filename_json, hash.to_json)
 
 	puts "  #{filename_json}"
 end
